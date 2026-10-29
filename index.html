@@ -86,6 +86,7 @@ footer a{color:var(--y)}
     <label>Power <input type="range" min="0" max="100" value="30" data-w="power"></label>
     <label>Easy trophies <input type="range" min="0" max="100" value="25" data-w="room"></label>
     <label><input type="checkbox" id="only11" style="width:auto"> Power 11 only</label>
+    <label>Push cap <input type="number" id="cap" min="100" step="50" value="1000" style="width:90px"> 🏆</label>
   </div>
   <div class="picks" id="picks" style="margin-top:12px"><div class="loading">Loading…</div></div>
   <div class="sec"><h2>🗺️ Live maps</h2><small>Tap a map to see your best brawlers for it</small></div>
@@ -96,7 +97,7 @@ footer a{color:var(--y)}
 </div>
 <script>
 const $=s=>document.querySelector(s);
-const S={player:null,events:null,brawlers:{},sel:null,sort:'score',w:{meta:45,power:30,room:25},only11:false};
+const S={player:null,events:null,brawlers:{},sel:null,sort:'score',w:{meta:45,power:30,room:25},only11:false,cap:+(localStorage.getItem('w2p_cap')||1000)};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const cleanTag=t=>String(t||'').toUpperCase().replace(/^#/,'').replace(/O/g,'0').replace(/[^0289PYLQGRJCUV]/g,'');
 const imgFor=id=>(S.brawlers[id]&&S.brawlers[id].image)||`https://cdn.brawlify.com/brawlers/borderless/${id}.png`;
@@ -113,8 +114,7 @@ function brawlerFacts(b){
 }
 function roomScore(b,all){
   // Easier to gain trophies lower down; also reward a gap below the brawler's own best.
-  const maxT=Math.max(500,...all.map(x=>x.trophies||0));
-  const low=1-Math.min(1,(b.trophies||0)/(maxT+150));
+  const low=1-Math.min(1,(b.trophies||0)/S.cap);
   const gap=Math.min(1,Math.max(0,(b.highestTrophies||0)-(b.trophies||0))/150);
   return Math.min(1,low*0.75+gap*0.25);
 }
@@ -164,15 +164,15 @@ function renderProfile(){
 }
 function renderPicks(){
   const el=$('#picks'); if(!S.player){el.innerHTML='<div class="loading">Enter your player tag to get picks.</div>';return}
-  const ranked=scoreAll().slice(0,9);
+  const ranked=scoreAll().filter(x=>(x.b.trophies||0)<S.cap).slice(0,9);
   const evs=(S.events&&S.events.active)||[];
-  $('#picksub').textContent=S.sel!=null&&evs[S.sel]?`Best on ${evs[S.sel].map.name} (${evs[S.sel].mode.name}). Tap the map again for all maps`:'Best picks across the live maps';
+  $('#picksub').textContent=S.sel!=null&&evs[S.sel]?`Best on ${evs[S.sel].map.name} (${evs[S.sel].mode.name}). Tap the map again for all maps`:'Best picks across the live maps, under '+S.cap+' trophies';
   el.innerHTML=ranked.map((x,i)=>`<div class="pick ${i<3?'top':''}"><div class="rank">#${i+1}</div>
   <img class="bimg" src="${imgFor(x.b.id)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
   <div style="min-width:0"><p class="pname">${esc(cap(x.b.name))}</p>
   <div class="chips"><span class="chip p">⚡ ${x.b.power}</span><span class="chip t">🏆 ${x.b.trophies}</span>${x.best&&x.best.m?`<span class="chip w">${x.best.m.wr.toFixed?x.best.m.wr.toFixed(1):x.best.m.wr}% WR</span>`:''}</div>
   ${x.best?`<div class="where">Push on <b>${esc(x.best.ev.map.name)}</b> · ${esc(x.best.ev.mode.name||'')}</div>`:''}
-  <div class="why">${esc(why(x))}</div><div class="bar"><i style="width:${Math.round(x.score*100)}%"></i></div></div></div>`).join('')||'<div class="loading">No brawlers match.</div>';
+  <div class="why">${esc(why(x))}</div><div class="bar"><i style="width:${Math.round(x.score*100)}%"></i></div></div></div>`).join('')||`<div class="loading">Every brawler is at ${S.cap}+ trophies. Nothing left to push!</div>`;
 }
 function renderEvents(){
   const el=$('#events'); const evs=(S.events&&S.events.active)||[];
@@ -223,6 +223,7 @@ async function load(force){
   renderAll();
 }
 document.querySelectorAll('#weights input[type=range]').forEach(r=>r.oninput=()=>{S.w[r.dataset.w]=+r.value;renderPicks();renderRoster()});
+$('#cap').value=S.cap;$('#cap').onchange=e=>{const v=Math.max(100,+e.target.value||1000);S.cap=v;e.target.value=v;localStorage.setItem('w2p_cap',v);renderPicks();renderRoster()};
 $('#only11').onchange=e=>{S.only11=e.target.checked;renderPicks();renderRoster()};
 $('#tagform').onsubmit=e=>{e.preventDefault();S.sel=null;load(true)};
 $('#tag').value='#'+(cleanTag(location.hash)||localStorage.getItem('w2p_tag')||'');
