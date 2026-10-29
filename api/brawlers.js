@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
     const b = await getJSON('https://api.brawlify.com/v1/brawlers');
     return res.json({ list: (b.list || []).map(x => ({ id: x.id, name: x.name, image: x.imageUrl2 || x.imageUrl })) });
   } catch {}
-  const key = process.env.BS_API_KEY;
+  const key = String(process.env.BS_API_KEY || '').replace(/^\s*(Bearer\s+)?/i, '').replace(/\s+/g, '');
   if (!key) return res.status(502).json({ error: "Couldn't load brawlers" });
   try {
     const b = await getJSON(`${process.env.BS_API_BASE || 'https://bsproxy.royaleapi.dev/v1'}/brawlers`, { Authorization: `Bearer ${key}` });

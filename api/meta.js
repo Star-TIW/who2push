@@ -4,7 +4,7 @@ const { getJSON } = require('./_util');
 const base = () => process.env.BS_API_BASE || 'https://bsproxy.royaleapi.dev/v1';
 async function pool(items, n, fn) { const out = []; let i = 0; await Promise.all(Array.from({ length: n }, async () => { while (i < items.length) { const k = i++; try { out[k] = await fn(items[k]); } catch { out[k] = null; } } })); return out; }
 module.exports = async (req, res) => {
-  const key = process.env.BS_API_KEY;
+  const key = String(process.env.BS_API_KEY || '').replace(/^\s*(Bearer\s+)?/i, '').replace(/\s+/g, '');
   if (!key) return res.status(503).json({ error: 'Server is missing its Brawl Stars API key (BS_API_KEY).' });
   const H = { Authorization: `Bearer ${key}` };
   const t0 = Date.now();

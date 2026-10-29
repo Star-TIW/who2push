@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
     res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=3600');
     return res.json({ source: 'brawlify', active: active.map(slimBrawlify), fetchedAt: new Date().toISOString() });
   } catch (e) { /* fall through */ }
-  const key = process.env.BS_API_KEY;
+  const key = String(process.env.BS_API_KEY || '').replace(/^\s*(Bearer\s+)?/i, '').replace(/\s+/g, '');
   if (!key) return res.status(502).json({ error: "Couldn't load the event rotation" });
   try {
     const base = process.env.BS_API_BASE || 'https://bsproxy.royaleapi.dev/v1';

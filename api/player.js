@@ -3,7 +3,7 @@ const { getJSON, cleanTag } = require('./_util');
 module.exports = async (req, res) => {
   const tag = cleanTag(req.query.tag);
   if (!tag) return res.status(400).json({ error: 'Enter a player tag' });
-  const key = process.env.BS_API_KEY;
+  const key = String(process.env.BS_API_KEY || '').replace(/^\s*(Bearer\s+)?/i, '').replace(/\s+/g, '');
   if (!key) return res.status(503).json({ error: 'This site is missing its Brawl Stars API key (BS_API_KEY). See the README.' });
   const base = process.env.BS_API_BASE || 'https://bsproxy.royaleapi.dev/v1';
   try {
