@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Who2Push · Brawl Stars push picker</title>
+<meta name="description" content="Who should you push next in Brawl Stars? Ranks your brawlers on the live maps using power, trophies and meta win rates.">
+<meta name="theme-color" content="#000000">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#000;--card:rgba(21,21,21,.82);--card2:rgba(30,30,30,.9);--line:#2a2a2a;--txt:#f2f2f2;--mut:#9a9a9a;--y:#efef88;--gold:#f2c14e;--gold2:#ffd970;--g:#7be0a5;--r:#ff6b6b;--b:#efef88;
+--grad:linear-gradient(90deg,#b48441 0%,#efef88 50%,#ba8a4f 100%)}
+*{box-sizing:border-box}html,body{margin:0;color:var(--txt);font-family:Poppins,Verdana,sans-serif}
+body{background:linear-gradient(to bottom,#171717 0%,#0d0d0d 99%);background-attachment:fixed;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;background:#000;z-index:9999;pointer-events:none;animation:fade 1s ease-out forwards}
+@keyframes fade{to{opacity:0}}
+#stars{position:fixed;inset:0;z-index:-1;width:100%;height:100%}
+.wrap{max-width:1100px;margin:0 auto;padding:96px 16px 16px}
+h1,h2,h3,.lil{font-family:Anton,Impact,sans-serif;letter-spacing:.6px;font-weight:400;text-transform:uppercase}
+header{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 20px;background:rgba(255,255,255,.08);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-bottom:2px solid rgba(239,239,136,.5);overflow:hidden}
+header::before{content:"";position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);transition:.75s;pointer-events:none}
+header:hover::before{left:100%}
+.logo{font-size:34px;margin:0;line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;user-select:none}
+.logo span{-webkit-text-fill-color:#fff}
+.tagbox{margin-left:auto;display:flex;gap:8px}
+.tagbox input{background:rgba(0,0,0,.55);border:2px solid rgba(239,239,136,.45);color:var(--y);border-radius:35px;padding:9px 16px;font-weight:700;width:170px;text-transform:uppercase;font-family:Poppins,sans-serif;outline:none;transition:.3s}
+.tagbox input:focus{border-color:var(--y);box-shadow:0 0 18px rgba(239,239,136,.35)}
+button{cursor:pointer;border:0;border-radius:35px;padding:9px 18px;font-weight:800;background:var(--grad);color:#000;font-family:Poppins,sans-serif;transition:.3s}
+button:hover{box-shadow:0 0 20px rgba(239,239,136,.45);transform:translateY(-1px)}
+button.ghost{background:transparent;color:var(--y);border:1.5px solid rgba(239,239,136,.5)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;backdrop-filter:blur(3px)}
+.profile{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.profile .name{font-size:28px}.stat{background:rgba(0,0,0,.45);border:1px solid var(--line);border-radius:12px;padding:8px 14px;text-align:center}
+.stat b{display:block;font-size:22px;font-family:Anton;font-weight:400;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}.stat small{color:var(--mut)}
+.err{background:#ff6b6b18;border:1px solid var(--r);color:#ffd0d0;padding:12px;border-radius:12px;margin:10px 0}
+.sec{margin:26px 0 10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.sec h2{margin:0;font-size:26px;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}.sec small{color:var(--mut)}
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.pick{position:relative;display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;overflow:hidden;transition:.3s}
+.pick:hover{border-color:rgba(239,239,136,.6);box-shadow:0 4px 20px rgba(239,239,136,.15)}
+.pick.top{border-color:rgba(239,239,136,.7);box-shadow:0 4px 22px rgba(239,239,136,.18)}
+.rank{position:absolute;top:8px;right:12px;font-family:Anton;font-size:22px;color:#555}
+.pick.top .rank{color:var(--y)}
+.bimg{width:64px;height:64px;border-radius:12px;background:#0008;object-fit:cover;flex:0 0 64px;border:1px solid var(--line)}
+.pname{font-family:Anton;font-size:20px;margin:0;text-transform:uppercase;letter-spacing:.5px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.chip{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:#0007;border:1px solid var(--line)}
+.chip.p{color:#efef88}.chip.t{color:var(--gold)}.chip.w{color:var(--g)}
+.where{font-size:13px;color:var(--mut)}.where b{color:var(--txt)}
+.why{font-size:12.5px;color:#cfcfcf;margin-top:6px;line-height:1.4}
+.bar{height:5px;background:#0008;border-radius:9px;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;background:var(--grad)}
+.events{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.ev{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:.3s}
+.ev:hover{transform:translateY(-3px);border-color:rgba(239,239,136,.5)}.ev.sel{outline:2px solid var(--y);box-shadow:0 0 24px rgba(239,239,136,.3)}
+.evtop{display:flex;align-items:center;gap:8px;padding:8px 10px;font-family:Anton;font-size:15px;text-transform:uppercase;letter-spacing:.5px}
+.evtop img{width:22px;height:22px}
+.evmap{height:120px;background:#0007 center/contain no-repeat}
+.evb{padding:8px 10px;font-size:12.5px;color:var(--mut)}
+.evb .best{display:flex;gap:4px;margin-top:6px}.evb .best img{width:30px;height:30px;border-radius:8px;background:#0008}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{color:var(--y);font-weight:600;cursor:pointer;position:sticky;top:0;background:#111}
+td img{width:28px;height:28px;border-radius:7px;vertical-align:middle;margin-right:6px;background:#0008}
+.scroll{max-height:520px;overflow:auto;border-radius:12px}
+.muted{color:var(--mut)}.loading{padding:30px;text-align:center;color:var(--mut)}
+.weights{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--mut);align-items:center}
+.weights input{accent-color:#efef88;width:110px;vertical-align:middle}
+footer{color:var(--mut);font-size:12px;text-align:center;margin:34px 0 10px}
+footer a{color:var(--y)}
+@media(max-width:640px){.tagbox{margin-left:0;width:100%}.tagbox input{flex:1}.logo{font-size:28px}.wrap{padding-top:130px}}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+  <header>
+    <h1 class="logo">WHO<span>2</span>PUSH</h1>
+    <form class="tagbox" id="tagform"><input id="tag" placeholder="#YOURTAG" autocomplete="off" spellcheck="false"><button>GO</button></form>
+  </header>
+<div class="wrap">
+  <div id="err"></div>
+  <div id="profile"></div>
+  <div class="sec"><h2>🔥 Push these next</h2><small id="picksub">Best picks across the live maps</small></div>
+  <div class="weights card" id="weights">
+    <span class="lil" style="color:var(--txt)">Weigh it:</span>
+    <label>Meta <input type="range" min="0" max="100" value="45" data-w="meta"></label>
+    <label>Power <input type="range" min="0" max="100" value="30" data-w="power"></label>
+    <label>Easy trophies <input type="range" min="0" max="100" value="25" data-w="room"></label>
+    <label><input type="checkbox" id="only11" style="width:auto"> Power 11 only</label>
+  </div>
+  <div class="picks" id="picks" style="margin-top:12px"><div class="loading">Loading…</div></div>
+  <div class="sec"><h2>🗺️ Live maps</h2><small>Tap a map to see your best brawlers for it</small></div>
+  <div class="events" id="events"><div class="loading">Loading events…</div></div>
+  <div class="sec"><h2>📋 All your brawlers</h2><small id="rostersub"></small></div>
+  <div class="card"><div class="scroll"><table id="roster"></table></div></div>
+  <footer>Live data from the Brawl Stars API and <a href="https://brawlify.com" target="_blank" rel="noopener">Brawlify</a>. Not affiliated with Supercell. Made by <a href="https://github.com/Star-TIW" target="_blank" rel="noopener">Star-TIW</a>.</footer>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const S={player:null,events:null,brawlers:{},sel:null,sort:'score',w:{meta:45,power:30,room:25},only11:false};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cleanTag=t=>String(t||'').toUpperCase().replace(/^#/,'').replace(/O/g,'0').replace(/[^0289PYLQGRJCUV]/g,'');
+const imgFor=id=>(S.brawlers[id]&&S.brawlers[id].image)||`https://cdn.brawlify.com/brawlers/borderless/${id}.png`;
+const left=t=>{if(!t)return'';const ms=new Date(t)-Date.now();if(ms<=0)return'ending';const h=Math.floor(ms/36e5),m=Math.floor(ms%36e5/6e4);return h>=24?`${Math.floor(h/24)}d ${h%24}h left`:`${h}h ${m}m left`};
+async function api(p){const r=await fetch(p);const j=await r.json().catch(()=>({error:'Bad response'}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
+
+// ---------- scoring ----------
+function brawlerFacts(b){
+  const sp=(b.starPowers||[]).length, gd=(b.gadgets||[]).length, gr=(b.gears||[]).length, hc=(b.hyperCharges||[]).length;
+  let power=(b.power||1)/11; // 0..1
+  power=power*0.7 + Math.min(sp,2)/2*0.1 + Math.min(gd,2)/2*0.07 + Math.min(gr,2)/2*0.05 + (hc?0.08:0);
+  if(b.power<9) power*=0.6; // no star power slot below 9
+  return {sp,gd,gr,hc,power:Math.min(1,power)};
+}
+function roomScore(b,all){
+  // Easier to gain trophies lower down; also reward a gap below the brawler's own best.
+  const maxT=Math.max(500,...all.map(x=>x.trophies||0));
+  const low=1-Math.min(1,(b.trophies||0)/(maxT+150));
+  const gap=Math.min(1,Math.max(0,(b.highestTrophies||0)-(b.trophies||0))/150);
+  return Math.min(1,low*0.75+gap*0.25);
+}
+function metaFor(id,ev){
+  const s=(ev.stats||[]).find(x=>x.brawler==id); if(!s||s.winRate==null)return null;
+  const wrs=(ev.stats||[]).map(x=>x.winRate).filter(x=>x!=null).sort((a,b)=>a-b);
+  const rank=wrs.findIndex(x=>x>=s.winRate)/Math.max(1,wrs.length-1); // percentile 0..1
+  return {pct:rank,wr:s.winRate,use:s.useRate};
+}
+function scoreAll(){
+  if(!S.player)return[];
+  const all=S.player.brawlers||[]; const evs=(S.events&&S.events.active)||[];
+  const W=S.w, tot=(W.meta+W.power+W.room)||1;
+  return all.map(b=>{
+    const f=brawlerFacts(b), room=roomScore(b,all);
+    let best=null;
+    const list=S.sel!=null?[evs[S.sel]].filter(Boolean):evs;
+    for(const ev of list){const m=metaFor(b.id,ev); const mv=m?m.pct:0.35; if(!best||mv>best.mv)best={ev,m,mv};}
+    const meta=best?best.mv:0.35;
+    const score=(W.meta*meta+W.power*f.power+W.room*room)/tot;
+    return {b,f,room,meta,best,score};
+  }).filter(x=>!S.only11||x.b.power===11).sort((a,b)=>b.score-a.score);
+}
+function why(x){
+  const r=[];
+  if(x.best&&x.best.m&&x.meta>=0.7)r.push(`top ${Math.max(1,Math.round((1-x.meta)*100))}% win rate on ${x.best.ev.map.name}`);
+  else if(x.best&&x.best.m&&x.meta>=0.45)r.push(`solid on ${x.best.ev.map.name}`);
+  if(x.b.power===11)r.push('maxed at power 11');else if(x.b.power>=9)r.push(`power ${x.b.power}`);else r.push(`only power ${x.b.power}, upgrade first`);
+  if(x.f.hc)r.push('has hypercharge');
+  if(x.f.sp>=1&&x.f.gd>=1&&x.f.gr>=1)r.push('full kit');else if(x.b.power>=9&&x.f.sp===0)r.push('no star power yet');
+  if(x.room>=0.6)r.push('low trophies, easy gains');else if(x.room<0.3)r.push('already high, harder climb');
+  const gap=(x.b.highestTrophies||0)-(x.b.trophies||0); if(gap>=50)r.push(`${gap} below its best`);
+  return r.join(' · ');
+}
+
+// ---------- render ----------
+function renderProfile(){
+  const p=S.player; if(!p){$('#profile').innerHTML='';return}
+  const bs=p.brawlers||[]; const p11=bs.filter(b=>b.power===11).length;
+  $('#profile').innerHTML=`<div class="card profile"><div><div class="name lil" style="color:#${esc((p.nameColor||'0xffffffff').slice(-6))}">${esc(p.name)}</div><div class="muted">#${esc(cleanTag(p.tag))}${p.club&&p.club.name?' · '+esc(p.club.name):''}</div></div>
+  <div class="stat"><b>${(p.trophies||0).toLocaleString()}</b><small>trophies</small></div>
+  <div class="stat"><b>${(p.highestTrophies||0).toLocaleString()}</b><small>best</small></div>
+  <div class="stat"><b>${bs.length}</b><small>brawlers</small></div>
+  <div class="stat"><b>${p11}</b><small>at power 11</small></div>
+  <div class="stat"><b>${(p['3vs3Victories']||0).toLocaleString()}</b><small>3v3 wins</small></div>
+  <button class="ghost" style="margin-left:auto" onclick="load(true)">↻ Refresh</button></div>`;
+}
+function renderPicks(){
+  const el=$('#picks'); if(!S.player){el.innerHTML='<div class="loading">Enter your player tag to get picks.</div>';return}
+  const ranked=scoreAll().slice(0,9);
+  const evs=(S.events&&S.events.active)||[];
+  $('#picksub').textContent=S.sel!=null&&evs[S.sel]?`Best on ${evs[S.sel].map.name} (${evs[S.sel].mode.name}). Tap the map again for all maps`:'Best picks across the live maps';
+  el.innerHTML=ranked.map((x,i)=>`<div class="pick ${i<3?'top':''}"><div class="rank">#${i+1}</div>
+  <img class="bimg" src="${imgFor(x.b.id)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+  <div style="min-width:0"><p class="pname">${esc(cap(x.b.name))}</p>
+  <div class="chips"><span class="chip p">⚡ ${x.b.power}</span><span class="chip t">🏆 ${x.b.trophies}</span>${x.best&&x.best.m?`<span class="chip w">${x.best.m.wr.toFixed?x.best.m.wr.toFixed(1):x.best.m.wr}% WR</span>`:''}</div>
+  ${x.best?`<div class="where">Push on <b>${esc(x.best.ev.map.name)}</b> · ${esc(x.best.ev.mode.name||'')}</div>`:''}
+  <div class="why">${esc(why(x))}</div><div class="bar"><i style="width:${Math.round(x.score*100)}%"></i></div></div></div>`).join('')||'<div class="loading">No brawlers match.</div>';
+}
+function renderEvents(){
+  const el=$('#events'); const evs=(S.events&&S.events.active)||[];
+  if(!evs.length){el.innerHTML='<div class="loading">No live events loaded.</div>';return}
+  const owned=new Set(((S.player&&S.player.brawlers)||[]).map(b=>b.id));
+  el.innerHTML=evs.map((e,i)=>{
+    const top=[...(e.stats||[])].filter(s=>!S.player||owned.has(s.brawler)).sort((a,b)=>(b.winRate||0)-(a.winRate||0)).slice(0,5);
+    return `<div class="ev ${S.sel===i?'sel':''}" data-i="${i}"><div class="evtop" style="background:${esc(e.mode.color||'#333')}33">${e.mode.icon?`<img src="${esc(e.mode.icon)}" alt="">`:''}${esc(e.mode.name||'Event')}</div>
+    <div class="evmap" style="background-image:url('${esc(e.map.image||'')}')"></div>
+    <div class="evb"><b style="color:var(--txt)">${esc(e.map.name)}</b> · ${left(e.endTime)}
+    ${top.length?`<div class="best">${top.map(s=>`<img title="${esc(cap((S.brawlers[s.brawler]||{}).name||''))} ${s.winRate}%" src="${imgFor(s.brawler)}" loading="lazy">`).join('')}</div><div style="margin-top:4px">${S.player?'Your best here by win rate':'Top win rates'}</div>`:'<div>No stats yet</div>'}</div></div>`}).join('');
+  el.querySelectorAll('.ev').forEach(d=>d.onclick=()=>{const i=+d.dataset.i;S.sel=S.sel===i?null:i;renderEvents();renderPicks();renderRoster();window.scrollTo({top:$('#picks').offsetTop-80,behavior:'smooth'})});
+}
+const cap=s=>String(s||'').toLowerCase().replace(/(^|[\s.-])\w/g,m=>m.toUpperCase());
+function renderRoster(){
+  const t=$('#roster'); if(!S.player){t.innerHTML='';return}
+  let rows=scoreAll();
+  const k=S.sort; if(k!=='score')rows.sort((a,b)=>k==='name'?a.b.name.localeCompare(b.b.name):(b.b[k]||0)-(a.b[k]||0));
+  $('#rostersub').textContent=`${rows.length} brawlers · tap a header to sort`;
+  t.innerHTML=`<tr><th data-k="name">Brawler</th><th data-k="score">Push score</th><th data-k="power">Power</th><th data-k="trophies">Trophies</th><th data-k="highestTrophies">Best</th><th>SP/Gad/Gear</th><th>Best live map</th></tr>`+
+  rows.map(x=>`<tr><td><img src="${imgFor(x.b.id)}" loading="lazy">${esc(cap(x.b.name))}</td><td><b style="color:var(--y)">${Math.round(x.score*100)}</b></td><td>${x.b.power}</td><td>${x.b.trophies}</td><td>${x.b.highestTrophies}</td><td>${x.f.sp}/${x.f.gd}/${x.f.gr}${x.f.hc?' ⚡HC':''}</td><td class="muted">${x.best?esc(x.best.ev.map.name)+(x.best.m?` (${x.best.m.wr}%)`:''):'—'}</td></tr>`).join('');
+  t.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{S.sort=th.dataset.k;renderRoster()});
+}
+function renderAll(){renderProfile();renderPicks();renderEvents();renderRoster()}
+
+// ---------- load ----------
+async function load(force){
+  $('#err').innerHTML='';
+  const tag=cleanTag($('#tag').value); if(tag){localStorage.setItem('w2p_tag',tag);history.replaceState(null,'','#'+tag)}
+  const jobs=[];
+  if(!S.events||force)jobs.push(api('/api/events').then(j=>S.events=j).catch(e=>$('#err').innerHTML+=`<div class="err">Maps: ${esc(e.message)}</div>`));
+  if(!Object.keys(S.brawlers).length)jobs.push(api('/api/brawlers').then(j=>j.list.forEach(b=>S.brawlers[b.id]=b)).catch(()=>{}));
+  if(tag)jobs.push(api('/api/player?tag='+tag).then(j=>S.player=j).catch(e=>{S.player=null;$('#err').innerHTML+=`<div class="err">Player: ${esc(e.message)}</div>`}));
+  await Promise.all(jobs); renderAll();
+}
+document.querySelectorAll('#weights input[type=range]').forEach(r=>r.oninput=()=>{S.w[r.dataset.w]=+r.value;renderPicks();renderRoster()});
+$('#only11').onchange=e=>{S.only11=e.target.checked;renderPicks();renderRoster()};
+$('#tagform').onsubmit=e=>{e.preventDefault();S.sel=null;load(true)};
+$('#tag').value='#'+(cleanTag(location.hash)||localStorage.getItem('w2p_tag')||'');
+if(!$('#tag').value.replace('#',''))$('#tag').value='';
+load();
+
+// ---------- starfield (Stargazer style) ----------
+(()=>{const c=document.getElementById('stars'),x=c.getContext('2d');let W,H,P=[];
+function rs(){W=c.width=innerWidth*devicePixelRatio;H=c.height=innerHeight*devicePixelRatio;const n=Math.min(260,Math.round(innerWidth*innerHeight/5000));P=Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,r:(Math.random()*1.6+.3)*devicePixelRatio,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,a:Math.random(),da:(Math.random()*.012+.003)*(Math.random()<.5?-1:1)}))}
+function f(){x.clearRect(0,0,W,H);for(const p of P){p.x=(p.x+p.vx+W)%W;p.y=(p.y+p.vy+H)%H;p.a+=p.da;if(p.a<0||p.a>1)p.da*=-1;x.globalAlpha=Math.max(0,Math.min(1,p.a));x.fillStyle='#efef88';x.beginPath();x.arc(p.x,p.y,p.r,0,7);x.fill()}requestAnimationFrame(f)}
+addEventListener('resize',rs);rs();if(!matchMedia('(prefers-reduced-motion: reduce)').matches)f();})();
+setInterval(()=>{renderEvents()},60000);
+</script>
+</body>
+</html>
