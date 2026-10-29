@@ -199,14 +199,35 @@ function renderRoster(){
 function renderAll(){renderProfile();renderPicks();renderEvents();renderRoster()}
 
 // ---------- load ----------
+// Brawlify blocks server requests, so try it straight from the visitor's browser first.
+const BF='https://api.brawlify.com/v1';
+const slimBF=e=>({startTime:e.startTime,endTime:e.endTime,mode:{name:e.map.gameMode&&e.map.gameMode.name,color:e.map.gameMode&&(e.map.gameMode.color||e.map.gameMode.bgColor),icon:e.map.gameMode&&e.map.gameMode.imageUrl},map:{id:e.map.id,name:e.map.name,image:e.map.imageUrl},stats:(e.map.stats||[]).map(s=>({brawler:s.brawler,winRate:s.winRate,useRate:s.useRate}))});
+async function loadEvents(){
+  try{
+    const ev=await api(BF+'/events'); const act=(ev.active||[]).filter(e=>e&&e.map);
+    await Promise.all(act.filter(e=>!(e.map.stats&&e.map.stats.length)).slice(0,14).map(async e=>{try{const m=await api(BF+'/maps/'+e.map.id);e.map.stats=m.stats||[];e.map.imageUrl=e.map.imageUrl||m.imageUrl}catch{}}));
+    if(act.length)return {source:'brawlify',active:act.map(slimBF)};
+  }catch{}
+  const j=await api('/api/events');
+  if(j.source==='official'&&j.active.length){ // try to add win rates per map from the browser
+    await Promise.all(j.active.map(async e=>{try{const m=await api(BF+'/maps/'+e.map.id);e.stats=(m.stats||[]).map(s=>({brawler:s.brawler,winRate:s.winRate,useRate:s.useRate}));if(m.imageUrl)e.map.image=m.imageUrl;if(m.gameMode){e.mode.icon=m.gameMode.imageUrl;e.mode.color=m.gameMode.color||m.gameMode.bgColor}}catch{}}));
+  }
+  return j;
+}
+async function loadBrawlers(){
+  try{const b=await api(BF+'/brawlers');(b.list||[]).forEach(x=>S.brawlers[x.id]={id:x.id,name:x.name,image:x.imageUrl2||x.imageUrl});}catch{}
+}
 async function load(force){
   $('#err').innerHTML='';
   const tag=cleanTag($('#tag').value); if(tag){localStorage.setItem('w2p_tag',tag);history.replaceState(null,'','#'+tag)}
   const jobs=[];
-  if(!S.events||force)jobs.push(api('/api/events').then(j=>S.events=j).catch(e=>$('#err').innerHTML+=`<div class="err">Maps: ${esc(e.message)}</div>`));
-  if(!Object.keys(S.brawlers).length)jobs.push(api('/api/brawlers').then(j=>j.list.forEach(b=>S.brawlers[b.id]=b)).catch(()=>{}));
+  if(!S.events||force)jobs.push(loadEvents().then(j=>S.events=j).catch(e=>$('#err').innerHTML+=`<div class="err">Maps: ${esc(e.message)}</div>`));
+  if(!Object.keys(S.brawlers).length)jobs.push(loadBrawlers());
   if(tag)jobs.push(api('/api/player?tag='+tag).then(j=>S.player=j).catch(e=>{S.player=null;$('#err').innerHTML+=`<div class="err">Player: ${esc(e.message)}</div>`}));
-  await Promise.all(jobs); renderAll();
+  await Promise.all(jobs);
+  const hasStats=((S.events&&S.events.active)||[]).some(e=>e.stats&&e.stats.length);
+  if(S.events&&!hasStats)$('#err').innerHTML+=`<div class="err" style="border-color:#efef8866;background:#efef8810;color:#efef88">Map win rates aren't loading right now, so picks lean on power and trophies.</div>`;
+  renderAll();
 }
 document.querySelectorAll('#weights input[type=range]').forEach(r=>r.oninput=()=>{S.w[r.dataset.w]=+r.value;renderPicks();renderRoster()});
 $('#only11').onchange=e=>{S.only11=e.target.checked;renderPicks();renderRoster()};
