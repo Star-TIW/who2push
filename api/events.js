@@ -7,6 +7,7 @@ const slimBrawlify = e => ({
   stats: (e.map.stats || []).map(s => ({ brawler: s.brawler, winRate: s.winRate, useRate: s.useRate }))
 });
 const offTime = s => s && s.length >= 15 ? `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T${s.slice(9,11)}:${s.slice(11,13)}:${s.slice(13,15)}Z` : s;
+const modeIds = {};
 const prettyMode = m => String(m || '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase());
 module.exports = async (req, res) => {
   try {
@@ -22,7 +23,7 @@ module.exports = async (req, res) => {
     const rot = await getJSON(`${base}/events/rotation`, { Authorization: `Bearer ${key}` });
     const active = (Array.isArray(rot) ? rot : []).filter(r => r.event && r.event.map).map(r => ({
       startTime: offTime(r.startTime), endTime: offTime(r.endTime),
-      mode: { name: prettyMode(r.event.mode), color: null, icon: null },
+      mode: { name: prettyMode(r.event.mode), raw: r.event.mode, color: null, icon: `https://cdn.brawlify.com/game-modes/regular/${modeIds[r.event.mode]||''}.png` },
       map: { id: r.event.id, name: r.event.map, image: `https://cdn.brawlify.com/maps/regular/${r.event.id}.png` },
       stats: []
     }));

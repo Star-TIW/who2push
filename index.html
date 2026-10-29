@@ -92,7 +92,7 @@ footer a{color:var(--y)}
   <div class="events" id="events"><div class="loading">Loading events…</div></div>
   <div class="sec"><h2>📋 All your brawlers</h2><small id="rostersub"></small></div>
   <div class="card"><div class="scroll"><table id="roster"></table></div></div>
-  <footer>Live data from the Brawl Stars API and <a href="https://brawlify.com" target="_blank" rel="noopener">Brawlify</a>. Not affiliated with Supercell. Made by <a href="https://github.com/Star-TIW" target="_blank" rel="noopener">Star-TIW</a>.</footer>
+  <footer>Live data from the Brawl Stars API (win rates from top players' recent battles) and <a href="https://brawlify.com" target="_blank" rel="noopener">Brawlify</a>. Not affiliated with Supercell. Made by <a href="https://github.com/Star-TIW" target="_blank" rel="noopener">Star-TIW</a>.</footer>
 </div>
 <script>
 const $=s=>document.querySelector(s);
@@ -212,10 +212,14 @@ async function loadEvents(){
   if(j.source==='official'&&j.active.length){ // try to add win rates per map from the browser
     await Promise.all(j.active.map(async e=>{try{const m=await api(BF+'/maps/'+e.map.id);e.stats=(m.stats||[]).map(s=>({brawler:s.brawler,winRate:s.winRate,useRate:s.useRate}));if(m.imageUrl)e.map.image=m.imageUrl;if(m.gameMode){e.mode.icon=m.gameMode.imageUrl;e.mode.color=m.gameMode.color||m.gameMode.bgColor}}catch{}}));
   }
+  if(!j.active.some(e=>e.stats&&e.stats.length)){ // live meta from top players' battle logs
+    try{const m=await api('/api/meta');S.metaInfo=m;j.active.forEach(e=>{const st=(m.maps||{})[e.map.id];const ms=(m.modes||{})[e.mode.raw||''];e.stats=(st&&st.length>=8)?st:(ms||st||[]);e.statsFrom=(st&&st.length>=8)?'map':'mode'})}catch{}
+  }
   return j;
 }
 async function loadBrawlers(){
-  try{const b=await api(BF+'/brawlers');(b.list||[]).forEach(x=>S.brawlers[x.id]={id:x.id,name:x.name,image:x.imageUrl2||x.imageUrl});}catch{}
+  try{const b=await api(BF+'/brawlers');(b.list||[]).forEach(x=>S.brawlers[x.id]={id:x.id,name:x.name,image:x.imageUrl2||x.imageUrl});return}catch{}
+  try{const b=await api('/api/brawlers');(b.list||[]).forEach(x=>S.brawlers[x.id]=x)}catch{}
 }
 async function load(force){
   $('#err').innerHTML='';
