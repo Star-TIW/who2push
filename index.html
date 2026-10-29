@@ -199,27 +199,16 @@ function renderRoster(){
 function renderAll(){renderProfile();renderPicks();renderEvents();renderRoster()}
 
 // ---------- load ----------
-// Brawlify blocks server requests, so try it straight from the visitor's browser first.
-const BF='https://api.brawlify.com/v1';
-const slimBF=e=>({startTime:e.startTime,endTime:e.endTime,mode:{name:e.map.gameMode&&e.map.gameMode.name,color:e.map.gameMode&&(e.map.gameMode.color||e.map.gameMode.bgColor),icon:e.map.gameMode&&e.map.gameMode.imageUrl},map:{id:e.map.id,name:e.map.name,image:e.map.imageUrl},stats:(e.map.stats||[]).map(s=>({brawler:s.brawler,winRate:s.winRate,useRate:s.useRate}))});
+async function apiRetry(p,n=3){let e;for(let i=0;i<n;i++){try{return await api(p)}catch(x){e=x;await new Promise(r=>setTimeout(r,800*(i+1)))}}throw e}
 async function loadEvents(){
-  try{
-    const ev=await api(BF+'/events'); const act=(ev.active||[]).filter(e=>e&&e.map);
-    await Promise.all(act.filter(e=>!(e.map.stats&&e.map.stats.length)).slice(0,14).map(async e=>{try{const m=await api(BF+'/maps/'+e.map.id);e.map.stats=m.stats||[];e.map.imageUrl=e.map.imageUrl||m.imageUrl}catch{}}));
-    if(act.length)return {source:'brawlify',active:act.map(slimBF)};
-  }catch{}
-  const j=await api('/api/events');
-  if(j.source==='official'&&j.active.length){ // try to add win rates per map from the browser
-    await Promise.all(j.active.map(async e=>{try{const m=await api(BF+'/maps/'+e.map.id);e.stats=(m.stats||[]).map(s=>({brawler:s.brawler,winRate:s.winRate,useRate:s.useRate}));if(m.imageUrl)e.map.image=m.imageUrl;if(m.gameMode){e.mode.icon=m.gameMode.imageUrl;e.mode.color=m.gameMode.color||m.gameMode.bgColor}}catch{}}));
-  }
+  const j=await apiRetry('/api/events');
   if(!j.active.some(e=>e.stats&&e.stats.length)){ // live meta from top players' battle logs
-    try{const m=await api('/api/meta');S.metaInfo=m;j.active.forEach(e=>{const st=(m.maps||{})[e.map.id];const ms=(m.modes||{})[e.mode.raw||''];e.stats=(st&&st.length>=8)?st:(ms||st||[]);e.statsFrom=(st&&st.length>=8)?'map':'mode'})}catch{}
+    try{const m=await apiRetry('/api/meta',2);S.metaInfo=m;j.active.forEach(e=>{const st=(m.maps||{})[e.map.id];const ms=(m.modes||{})[e.mode.raw||''];const good=st&&st.length>=8;e.stats=good?st:(ms||st||[]);e.statsFrom=good?'map':'mode'})}catch{}
   }
   return j;
 }
 async function loadBrawlers(){
-  try{const b=await api(BF+'/brawlers');(b.list||[]).forEach(x=>S.brawlers[x.id]={id:x.id,name:x.name,image:x.imageUrl2||x.imageUrl});return}catch{}
-  try{const b=await api('/api/brawlers');(b.list||[]).forEach(x=>S.brawlers[x.id]=x)}catch{}
+  try{const b=await apiRetry('/api/brawlers',2);(b.list||[]).forEach(x=>S.brawlers[x.id]=x)}catch{}
 }
 async function load(force){
   $('#err').innerHTML='';
