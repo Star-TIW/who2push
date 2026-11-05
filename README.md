@@ -12,6 +12,7 @@
 - Shows your top 9 picks with the map to push them on and why
 - Tap a map to see the best brawlers for that map only
 - A sortable table of your whole roster
+- **Squad mode**: add 1–2 teammates (1 in duo modes) by player tag or by the brawler they will play. Picks cover the whole team for the chosen event: map win rate, class fit for the mode, roles the team is missing, no duplicates, and simple class synergies. Teammate tags are saved in your browser.
 
 Anyone can use it. Just type in your `#TAG` (the letter O is changed to a zero for you, since tags only use 0).
 

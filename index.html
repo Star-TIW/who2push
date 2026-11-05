@@ -65,6 +65,24 @@ td img{width:28px;height:28px;border-radius:7px;vertical-align:middle;margin-rig
 .muted{color:var(--mut)}.loading{padding:30px;text-align:center;color:var(--mut)}
 .weights{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--mut);align-items:center}
 .weights input{accent-color:#efef88;width:110px;vertical-align:middle}
+.squad{margin-top:14px}.squad>summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.squad>summary::-webkit-details-marker{display:none}
+.squad>summary h2{margin:0;font-size:24px;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}.squad>summary small{color:var(--mut)}
+.squad>summary .tog{margin-left:auto;color:var(--y);font-weight:700;font-size:13px}.squad[open]>summary .tog::after{content:"Hide ▲"}.squad:not([open])>summary .tog::after{content:"Open ▼"}
+.sqrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0 4px;font-size:13px;color:var(--mut)}
+select,.sqin{background:rgba(0,0,0,.55);border:1.5px solid rgba(239,239,136,.4);color:var(--txt);border-radius:12px;padding:8px 10px;font-family:Poppins,sans-serif;font-size:13px;outline:none;max-width:100%}
+select:focus,.sqin:focus{border-color:var(--y)}
+.sqin{color:var(--y);font-weight:700;text-transform:uppercase;width:100%;min-width:0}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:10px}
+.slot{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.slot .who{font-family:Anton;text-transform:uppercase;letter-spacing:.5px;font-size:16px;display:flex;align-items:center;gap:6px}
+.slot .who small{font-family:Poppins;text-transform:none;letter-spacing:0;color:var(--mut);font-size:12px;margin-left:auto;cursor:pointer}
+.slot .line{display:flex;gap:6px}.slot .line button{padding:7px 12px;font-size:12px}
+.slot select{width:100%}
+.friends{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.friends .chip{cursor:pointer;color:var(--y)}
+.role{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#efef8818;border:1px solid #efef8855;color:var(--y);text-transform:uppercase;letter-spacing:.4px}
+.tmsum{margin:12px 0 2px;font-size:13px;color:var(--mut)}.tmsum b{color:var(--txt)}
+.alts{display:flex;gap:6px;margin-top:6px;align-items:center;font-size:11.5px;color:var(--mut)}.alts img{width:28px;height:28px;border-radius:7px;background:#0008}
+.pick.lock{border-style:dashed}
 footer{color:var(--mut);font-size:12px;text-align:center;margin:34px 0 10px}
 footer a{color:var(--y)}
 @media(max-width:640px){.tagbox{margin-left:0;width:100%}.tagbox input{flex:1}.logo{font-size:28px}.wrap{padding-top:130px}}
@@ -79,6 +97,13 @@ footer a{color:var(--y)}
 <div class="wrap">
   <div id="err"></div>
   <div id="profile"></div>
+  <details class="card squad" id="squad"><summary><h2>👥 Squad mode</h2><small>Playing with friends? Get picks that fit the whole team</small><span class="tog"></span></summary>
+    <div class="sqrow">Event <select id="sqev"></select></div>
+    <div class="slots" id="slots"></div>
+    <div class="friends" id="friends"></div>
+    <div class="tmsum" id="tmsum"></div>
+    <div class="picks" id="sqpicks" style="margin-top:10px"></div>
+  </details>
   <div class="sec"><h2>🔥 Push these next</h2><small id="picksub">Best picks across the live maps</small></div>
   <div class="weights card" id="weights">
     <span class="lil" style="color:var(--txt)">Weigh it:</span>
@@ -150,6 +175,120 @@ function why(x){
   return r.join(' · ');
 }
 
+// ---------- team core ----------
+const ROLES={tank:'Tank',dmg:'Damage',marks:'Marksman',thrower:'Thrower',ctrl:'Controller',assassin:'Assassin',support:'Support'};
+// Brawler classes (official in-game classes; Artillery shown as Thrower). Unknown/new brawlers return null.
+const ROLE=(()=>{const m={},add=(r,l)=>l.split(',').forEach(n=>m[n]=r);
+add('tank','ASH,BIBI,BOLT,BULL,BUSTER,DAMIAN,DARRYL,DRACO,EL PRIMO,FRANK,HANK,JACKY,MEG,OLLIE,ROSA,TRUNK');
+add('dmg','8-BIT,CARL,CHESTER,CHUCK,CLANCY,COLETTE,COLT,EVE,LOLA,LUMI,MINA,MOE,NAJIA,NITA,PEARL,R-T,RICO,SHELLY,SPIKE,SURGE,TARA,VINCE,BUZZ LIGHTYEAR');
+add('marks','ANGELO,BEA,BELLE,BONNIE,BROCK,JANET,MAISIE,MANDY,NANI,PIERCE,PIPER');
+add('thrower','BARLEY,DYNAMIKE,GROM,JUJU,LARRY & LAWRIE,SPROUT,TICK');
+add('ctrl','AMBER,BO,CHARLIE,COSMO,EMZ,FINX,GALE,GENE,GRIFF,JESSIE,LOU,MEEPLE,MR. P,OTIS,PENNY,SANDY,SIRIUS,SQUEAK,WILLOW,ZIGGY');
+add('assassin','ALLI,BUZZ,CORDELIUS,CROW,EDGAR,FANG,GIGI,KAZE,KENJI,LEON,LILY,MELODIE,MICO,MORTIS,NORI,SAM,SHADE,STARR NOVA,STU');
+add('support','BERRY,BYRON,DOUG,GLOWY,GRAY,GUS,JAE-YONG,KIT,MAX,PAM,POCO,RUFFS,WENDY');
+return m})();
+const ROLEPL={tank:'tanks',dmg:'damage dealers',marks:'marksmen',thrower:'throwers',ctrl:'controllers',assassin:'assassins',support:'supports'};
+const roleOf=n=>ROLE[String(n||'').toUpperCase().trim()]||null;
+const modeKey=ev=>String((ev&&ev.mode&&(ev.mode.raw||ev.mode.name))||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+function modeGroup(k){
+  if(k.includes('showdown'))return'sd';
+  if(/ball|hockey|basket/.test(k))return'ball';
+  if(k.includes('gem'))return'gem';
+  if(k.includes('heist'))return'heist';
+  if(/bounty|knockout/.test(k))return'range';
+  if(/wipeout|deathmatch|arena|takedown|hunter/.test(k))return'fight';
+  if(/hotzone|zone|siege/.test(k))return'zone';
+  return'any';
+}
+// Teammates allowed: solo modes 0, duo modes 1, everything else 2 (3v3 squad).
+const teamSize=ev=>{const k=modeKey(ev);return /solo/.test(k)?0:/duo/.test(k)?1:2};
+// How well each class fits each mode family (0..1).
+const FIT={
+  gem:  {tank:.6,dmg:.8,marks:.55,thrower:.7,ctrl:1,assassin:.5,support:.9},
+  ball: {tank:1,dmg:.85,marks:.4,thrower:.45,ctrl:.6,assassin:.9,support:.7},
+  heist:{tank:.6,dmg:1,marks:.7,thrower:.7,ctrl:.5,assassin:.85,support:.5},
+  range:{tank:.25,dmg:.6,marks:1,thrower:.85,ctrl:.8,assassin:.55,support:.7},
+  fight:{tank:.5,dmg:.85,marks:.9,thrower:.7,ctrl:.85,assassin:.65,support:.7},
+  zone: {tank:.85,dmg:.8,marks:.45,thrower:.9,ctrl:1,assassin:.5,support:.7},
+  sd:   {tank:.9,dmg:1,marks:.55,thrower:.6,ctrl:.8,assassin:.8,support:.65},
+  any:  {tank:.7,dmg:.7,marks:.7,thrower:.7,ctrl:.7,assassin:.7,support:.7}
+};
+// What a team in each mode family should have: [classes that fill it, how to name it].
+const NEEDS={
+  gem:  [[['ctrl','support'],'mid controller or support'],[['tank','dmg','assassin'],'frontline']],
+  ball: [[['tank','assassin'],'tank or diver to carry the ball'],[['dmg','ctrl','support','marks'],'backline damage']],
+  heist:[[['dmg','assassin'],'safe damage'],[['marks','thrower','ctrl','support'],'defender']],
+  range:[[['marks'],'long-range marksman'],[['thrower','ctrl','support'],'zone control']],
+  fight:[[['marks','thrower'],'long-range damage'],[['ctrl','support','dmg'],'controller or support']],
+  zone: [[['ctrl','thrower'],'area control'],[['tank','dmg','support'],'zone holder']],
+  sd:[],any:[]
+};
+const SYN=[['tank','support'],['tank','thrower'],['assassin','support'],['marks','ctrl'],['thrower','ctrl']];
+function indiv(b,ev,all){
+  const f=brawlerFacts(b), room=roomScore(b,all||[b]), m=metaFor(b.id,ev), mv=m?m.pct:0.35;
+  const W=S.w, tot=(W.meta+W.power+W.room)||1;
+  return {b,f,room,m,mv,score:(W.meta*mv+W.power*f.power+W.room*room)/tot};
+}
+function compScore(picks,ev,spare=0){
+  const g=modeGroup(modeKey(ev)), fit=FIT[g], needs=NEEDS[g];
+  const roles=picks.map(p=>p.role);
+  let s=roles.reduce((a,r)=>a+(r?fit[r]:0.6),0)/Math.max(1,roles.length)*0.35;
+  const missing=needs.filter(([rs])=>!roles.some(r=>rs.includes(r)));
+  s-=Math.max(0,missing.length-spare)*0.12;
+  const cnt={};roles.forEach(r=>{if(r)cnt[r]=(cnt[r]||0)+1});
+  if(g!=='sd')for(const r in cnt)if(cnt[r]>1)s-=(cnt[r]-1)*(r==='dmg'||r==='ctrl'?0.03:0.07);
+  s+=Object.keys(cnt).length*0.02;
+  for(const [a,b] of SYN)if(cnt[a]&&cnt[b])s+=0.03;
+  return {s,missing:missing.map(x=>x[1]),missingRoles:missing.map(x=>x[0])};
+}
+// slots[0] is the user. Each slot: {who, roster|null, lock:{id,name}|null}.
+function solveTeam(slots,ev,N=14){
+  const open=[],empty=[];
+  slots.forEach((sl,i)=>{if(sl.lock)return;if(sl.roster&&sl.roster.length)open.push(i);else empty.push(i)});
+  const taken=new Set(slots.filter(s=>s.lock).map(s=>+s.lock.id));
+  const locked=slots.map((sl,i)=>sl.lock?{slot:i,id:+sl.lock.id,name:sl.lock.name,role:roleOf(sl.lock.name),lock:true}:null).filter(Boolean);
+  const cands={};
+  for(const i of open){
+    const all=slots[i].roster;
+    let list=all.map(b=>indiv(b,ev,all)).filter(x=>!taken.has(+x.b.id));
+    const under=list.filter(x=>(x.b.trophies||0)<S.cap); if(under.length>=3)list=under;
+    list.sort((a,b)=>b.score-a.score); cands[i]=list.slice(0,N);
+  }
+  const evalChoice=ch=>{
+    const picks=[...locked,...open.map(i=>({slot:i,id:+ch[i].b.id,name:ch[i].b.name,role:roleOf(ch[i].b.name),x:ch[i]}))];
+    const ids=picks.map(p=>p.id); if(new Set(ids).size!==ids.length)return null;
+    const c=compScore(picks,ev,empty.length);
+    return {v:open.reduce((a,i)=>a+ch[i].score,0)+c.s*Math.max(1,open.length),c,picks:picks.sort((a,b)=>a.slot-b.slot),choice:{...ch}};
+  };
+  let best=null;
+  (function rec(k,ch){
+    if(k===open.length){const r=evalChoice(ch);if(r&&(!best||r.v>best.v))best=r;return}
+    for(const c of cands[open[k]]){ch[open[k]]=c;rec(k+1,ch)}
+  })(0,{});
+  if(!best)return {picks:locked,comp:compScore(locked,ev,empty.length),alts:{},open,empty};
+  const alts={};
+  for(const i of open){
+    alts[i]=cands[i].filter(c=>c!==best.choice[i]).map(c=>evalChoice({...best.choice,[i]:c})).filter(Boolean).sort((a,b)=>b.v-a.v).slice(0,2).map(r=>r.choice[i]);
+  }
+  return {picks:best.picks,comp:best.c,alts,open,empty,value:best.v};
+}
+function teamReasons(p,res,ev,slots){
+  const g=modeGroup(modeKey(ev)), r=[], others=res.picks.filter(o=>o.slot!==p.slot);
+  for(const [rs,label] of NEEDS[g])if(p.role&&rs.includes(p.role)&&!others.some(o=>rs.includes(o.role))){r.push(`your team has no ${label}`);break}
+  const x=p.x;
+  if(x&&x.m&&x.mv>=0.7)r.push(`top ${Math.max(1,Math.round((1-x.mv)*100))}% win rate on ${ev.map.name}`);
+  else if(x&&x.m&&x.mv>=0.45)r.push('good on this map');
+  else if(p.role&&FIT[g][p.role]>=0.85)r.push(`${ROLEPL[p.role]} are strong in ${ev.mode.name||'this mode'}`);
+  for(const o of others){if(!o.lock||!o.role||!p.role)continue;if(SYN.some(([a,b])=>(a===p.role&&b===o.role)||(b===p.role&&a===o.role))){r.push(`pairs well with ${slots[o.slot].who}'s ${cap(o.name)}`);break}}
+  if(x){if(x.b.power===11)r.push('power 11');else if(x.b.power<9)r.push(`only power ${x.b.power}`);if(x.room>=0.6)r.push('low trophies, easy gains')}
+  return r.slice(0,3).join(' · ');
+}
+// Example brawlers for a role a friend could fill: best win rates on this event in those classes, not already taken.
+function suggestFor(roles,ev,taken){
+  return [...(ev.stats||[])].filter(s=>!taken.has(+s.brawler)&&(!roles||roles.includes(roleOf((S.brawlers[s.brawler]||{}).name)))).sort((a,b)=>(b.winRate||0)-(a.winRate||0)).slice(0,3).map(s=>cap((S.brawlers[s.brawler]||{}).name||''));
+}
+// ---------- team core end ----------
+
 // ---------- render ----------
 function renderProfile(){
   const p=S.player; if(!p){$('#profile').innerHTML='';return}
@@ -184,7 +323,7 @@ function renderEvents(){
     <div class="evmap" style="background-image:url('${esc(e.map.image||'')}')"></div>
     <div class="evb"><b style="color:var(--txt)">${esc(e.map.name)}</b> · ${left(e.endTime)}
     ${top.length?`<div class="best">${top.map(s=>`<img title="${esc(cap((S.brawlers[s.brawler]||{}).name||''))} ${s.winRate}%" src="${imgFor(s.brawler)}" loading="lazy">`).join('')}</div><div style="margin-top:4px">${S.player?'Your best here by win rate':'Top win rates'}</div>`:'<div>No stats yet</div>'}</div></div>`}).join('');
-  el.querySelectorAll('.ev').forEach(d=>d.onclick=()=>{const i=+d.dataset.i;S.sel=S.sel===i?null:i;renderEvents();renderPicks();renderRoster();window.scrollTo({top:$('#picks').offsetTop-80,behavior:'smooth'})});
+  el.querySelectorAll('.ev').forEach(d=>d.onclick=()=>{const i=+d.dataset.i;S.sel=S.sel===i?null:i;renderEvents();renderPicks();renderRoster();renderSquad();window.scrollTo({top:$('#picks').offsetTop-80,behavior:'smooth'})});
 }
 const cap=s=>String(s||'').toLowerCase().replace(/(^|[\s.-])\w/g,m=>m.toUpperCase());
 function renderRoster(){
@@ -196,7 +335,7 @@ function renderRoster(){
   rows.map(x=>`<tr><td><img src="${imgFor(x.b.id)}" loading="lazy">${esc(cap(x.b.name))}</td><td><b style="color:var(--y)">${Math.round(x.score*100)}</b></td><td>${x.b.power}</td><td>${x.b.trophies}</td><td>${x.b.highestTrophies}</td><td>${x.f.sp}/${x.f.gd}/${x.f.gr}${x.f.hc?' ⚡HC':''}</td><td class="muted">${x.best?esc(x.best.ev.map.name)+(x.best.m?` (${x.best.m.wr}%)`:''):'—'}</td></tr>`).join('');
   t.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{S.sort=th.dataset.k;renderRoster()});
 }
-function renderAll(){renderProfile();renderPicks();renderEvents();renderRoster()}
+function renderAll(){renderProfile();renderPicks();renderEvents();renderRoster();renderSquad()}
 
 // ---------- load ----------
 async function apiRetry(p,n=3){let e;for(let i=0;i<n;i++){try{return await api(p)}catch(x){e=x;await new Promise(r=>setTimeout(r,800*(i+1)))}}throw e}
@@ -222,10 +361,103 @@ async function load(force){
   if(S.events&&!hasStats)$('#err').innerHTML+=`<div class="err" style="border-color:#efef8866;background:#efef8810;color:#efef88">Map win rates aren't loading right now, so picks lean on power and trophies.</div>`;
   renderAll();
 }
-document.querySelectorAll('#weights input[type=range]').forEach(r=>r.oninput=()=>{S.w[r.dataset.w]=+r.value;renderPicks();renderRoster()});
-$('#cap').value=S.cap;$('#cap').onchange=e=>{const v=Math.max(100,+e.target.value||1000);S.cap=v;e.target.value=v;localStorage.setItem('w2p_cap',v);renderPicks();renderRoster()};
+document.querySelectorAll('#weights input[type=range]').forEach(r=>r.oninput=()=>{S.w[r.dataset.w]=+r.value;renderPicks();renderRoster();renderSquad()});
+$('#cap').value=S.cap;$('#cap').onchange=e=>{const v=Math.max(100,+e.target.value||1000);S.cap=v;e.target.value=v;localStorage.setItem('w2p_cap',v);renderPicks();renderRoster();renderSquad()};
 $('#only11').onchange=e=>{S.only11=e.target.checked;renderPicks();renderRoster()};
 $('#tagform').onsubmit=e=>{e.preventDefault();S.sel=null;load(true)};
+// ---------- squad UI ----------
+const TS=(()=>{let d={};try{d=JSON.parse(localStorage.getItem('w2p_team')||'{}')}catch{}
+  return {evId:null,myLock:null,mates:[0,1].map(i=>({tag:((d.mates||[])[i]||{}).tag||'',player:null,lock:null,err:'',busy:false})),friends:d.friends||[]}})();
+const saveTeam=()=>localStorage.setItem('w2p_team',JSON.stringify({mates:TS.mates.map(m=>({tag:m.tag})),friends:TS.friends.slice(0,8)}));
+function squadEvent(){
+  const evs=(S.events&&S.events.active)||[]; if(!evs.length)return null;
+  let i=evs.findIndex(e=>String(e.map.id)===String(TS.evId));
+  if(i<0&&S.sel!=null&&evs[S.sel]&&teamSize(evs[S.sel])>0)i=S.sel;
+  if(i<0)i=evs.findIndex(e=>teamSize(e)===2);
+  if(i<0)i=evs.findIndex(e=>teamSize(e)>0);
+  return i<0?null:evs[i];
+}
+const bname=id=>(S.brawlers[id]||{}).name||'';
+function rosterOpts(list,sel,none){
+  return `<option value="">${none}</option>`+[...list].sort((a,b)=>a.name.localeCompare(b.name)).map(b=>`<option value="${b.id}" ${+sel===+b.id?'selected':''}>${esc(cap(b.name))}${b.power?` · P${b.power}`:''}${roleOf(b.name)?` · ${ROLES[roleOf(b.name)]}`:''}</option>`).join('');
+}
+function squadSlots(ev){
+  const n=teamSize(ev), me=S.player;
+  const findIn=(list,id)=>id&&(list.find(b=>+b.id===+id));
+  const allB=Object.values(S.brawlers);
+  const slots=[{who:'You',roster:me?me.brawlers:null,lock:null}];
+  if(TS.myLock&&me){const b=findIn(me.brawlers,TS.myLock);if(b)slots[0].lock={id:b.id,name:b.name}}
+  TS.mates.slice(0,n).forEach((m,i)=>{
+    const ros=m.player?m.player.brawlers:null;
+    const b=m.lock&&(findIn(ros||allB,m.lock));
+    slots.push({who:m.player?m.player.name:`Teammate ${i+1}`,roster:ros,lock:b?{id:b.id,name:b.name}:null});
+  });
+  return slots;
+}
+function renderSquad(){
+  const box=$('#squad'); if(!box)return;
+  const evs=(S.events&&S.events.active)||[], ev=squadEvent();
+  $('#sqev').innerHTML=evs.map((e,i)=>`<option value="${esc(e.map.id)}" ${ev&&String(e.map.id)===String(ev.map.id)?'selected':''} ${teamSize(e)?'':'disabled'}>${esc(e.mode.name||'Event')} · ${esc(e.map.name)}${teamSize(e)?'':' (solo)'}</option>`).join('')||'<option>No live events</option>';
+  if(!ev){$('#slots').innerHTML='';$('#sqpicks').innerHTML='<div class="loading">No team events loaded yet.</div>';$('#tmsum').textContent='';return}
+  const n=teamSize(ev), me=S.player, allB=Object.values(S.brawlers);
+  let h=`<div class="slot"><div class="who">⭐ ${esc(me?me.name:'You')}${me?'':'<small>add your tag up top</small>'}</div>
+    <select data-lock="me" ${me?'':'disabled'}>${me?rosterOpts(me.brawlers,TS.myLock,'Recommend me a brawler'):'<option>Enter your tag first</option>'}</select></div>`;
+  TS.mates.slice(0,n).forEach((m,i)=>{
+    h+=`<div class="slot"><div class="who">🤝 ${esc(m.player?m.player.name:'Teammate '+(i+1))}${m.tag||m.lock?`<small data-clear="${i}">✕ clear</small>`:''}</div>
+    <form class="line" data-mate="${i}"><input class="sqin" placeholder="#FRIENDTAG (optional)" value="${m.tag?'#'+esc(m.tag):''}" autocomplete="off" spellcheck="false"><button>${m.busy?'…':'Load'}</button></form>
+    ${m.err?`<div class="muted" style="color:var(--r);font-size:12px">${esc(m.err)}</div>`:''}
+    <select data-lock="${i}">${rosterOpts(m.player?m.player.brawlers:allB,m.lock,m.player?'Recommend them a brawler':'Playing… (or load their tag)')}</select></div>`;
+  });
+  $('#slots').innerHTML=h;
+  const inSlots=new Set(TS.mates.slice(0,n).map(m=>m.tag));
+  const fr=TS.friends.filter(f=>!inSlots.has(f.tag));
+  $('#friends').innerHTML=fr.length&&n?'<span class="muted" style="font-size:12px;align-self:center">Recent:</span>'+fr.map(f=>`<span class="chip" data-friend="${esc(f.tag)}">${esc(f.name)} #${esc(f.tag)}</span>`).join(''):'';
+  if(n===0){$('#tmsum').textContent='';$('#sqpicks').innerHTML='<div class="loading">That\'s a solo mode. Pick a team event above.</div>';return}
+  if(!me){$('#tmsum').textContent='';$('#sqpicks').innerHTML='<div class="loading">Enter your player tag up top to get squad picks.</div>';return}
+  const slots=squadSlots(ev), res=solveTeam(slots,ev);
+  const taken=new Set(res.picks.map(p=>p.id));
+  const roles=res.picks.map(p=>p.role?ROLES[p.role]:'?');
+  $('#tmsum').innerHTML=`<b>${esc(ev.mode.name)} · ${esc(ev.map.name)}</b> — team: ${roles.map(esc).join(' · ')||'—'}${res.comp.missing.length?` · <span style="color:var(--gold)">still needs ${res.comp.missing.map(esc).join(', ')}</span>`:''}`;
+  const card=(sl,i)=>{
+    const p=res.picks.find(x=>x.slot===i);
+    if(!p){
+      const need=res.comp.missingRoles[0], ex=suggestFor(need||null,ev,taken);
+      return `<div class="pick lock"><div class="rank">${esc(sl.who)}</div><div style="min-width:0;padding-right:40px"><p class="pname">${esc(sl.who)}</p>
+      <div class="why">No tag or pick yet. ${need?`Your team still needs a <b>${esc(res.comp.missing[0])}</b>`:'Any strong pick works here'}${ex.length?` — e.g. ${ex.map(esc).join(', ')}.`:'.'}</div></div></div>`;
+    }
+    const x=p.x, wr=x&&x.m?x.m.wr:((ev.stats||[]).find(s=>+s.brawler===p.id)||{}).winRate;
+    return `<div class="pick ${p.lock?'lock':'top'}"><div class="rank">${esc(i===0?'YOU':sl.who)}</div>
+    <img class="bimg" src="${imgFor(p.id)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+    <div style="min-width:0"><p class="pname">${esc(cap(p.name))}</p>
+    <div class="chips">${p.role?`<span class="role">${ROLES[p.role]}</span>`:''}${x?`<span class="chip p">⚡ ${x.b.power}</span><span class="chip t">🏆 ${x.b.trophies}</span>`:''}${wr!=null?`<span class="chip w">${(+wr).toFixed(1)}% WR</span>`:''}</div>
+    <div class="why">${p.lock?'🔒 Locked in'+(teamReasons(p,res,ev,slots)?' · ':''):''}${esc(teamReasons(p,res,ev,slots))}</div>
+    ${res.alts[i]&&res.alts[i].length?`<div class="alts">Also: ${res.alts[i].map(a=>`<img title="${esc(cap(a.b.name))}" src="${imgFor(a.b.id)}" loading="lazy">${esc(cap(a.b.name))}`).join(' ')}</div>`:''}</div></div>`;
+  };
+  $('#sqpicks').innerHTML=slots.map(card).join('');
+}
+async function loadMate(i,tag){
+  const m=TS.mates[i]; tag=cleanTag(tag); m.err='';
+  if(!tag){m.tag='';m.player=null;saveTeam();renderSquad();return}
+  if(m.player&&m.tag===tag)return;
+  m.tag=tag;m.busy=true;m.lock=null;renderSquad();
+  try{const p=await apiRetry('/api/player?tag='+tag,2);m.player={name:p.name,tag,brawlers:p.brawlers||[]};
+    TS.friends=[{tag,name:p.name},...TS.friends.filter(f=>f.tag!==tag)].slice(0,8);
+  }catch(e){m.player=null;m.err=e.message}
+  m.busy=false;saveTeam();renderSquad();
+}
+$('#squad').addEventListener('submit',e=>{const f=e.target.closest('form[data-mate]');if(!f)return;e.preventDefault();loadMate(+f.dataset.mate,f.querySelector('input').value)});
+$('#squad').addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='sqev'){TS.evId=t.value;renderSquad();return}
+  if(t.dataset.lock!=null){const v=t.value?+t.value:null;if(t.dataset.lock==='me')TS.myLock=v;else TS.mates[+t.dataset.lock].lock=v;renderSquad()}
+});
+$('#squad').addEventListener('click',e=>{
+  const c=e.target.closest('[data-clear]');if(c){e.preventDefault();const m=TS.mates[+c.dataset.clear];Object.assign(m,{tag:'',player:null,lock:null,err:''});saveTeam();renderSquad();return}
+  const f=e.target.closest('[data-friend]');if(f){const ev=squadEvent(),n=ev?teamSize(ev):2;let i=TS.mates.slice(0,n).findIndex(m=>!m.tag);if(i<0)i=n-1;if(i>=0)loadMate(i,f.dataset.friend)}
+});
+$('#squad').open=localStorage.getItem('w2p_squad')==='1';
+$('#squad').addEventListener('toggle',()=>{localStorage.setItem('w2p_squad',$('#squad').open?'1':'0');if($('#squad').open)renderSquad()});
+TS.mates.forEach((m,i)=>{if(m.tag){const t=m.tag;m.tag='';loadMate(i,t)}});
 $('#tag').value='#'+(cleanTag(location.hash)||localStorage.getItem('w2p_tag')||'');
 if(!$('#tag').value.replace('#',''))$('#tag').value='';
 load();
